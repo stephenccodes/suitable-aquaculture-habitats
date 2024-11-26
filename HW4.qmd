@@ -1,0 +1,9 @@
+---
+title: "EDS 223: Homework 4"
+author: Stephen Carroll
+format: 
+  html:
+    toc: true
+editor_options: 
+  chunk_output_type: console
+---
