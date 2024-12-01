@@ -234,8 +234,23 @@ suitable_sst_depth <- lapp(c(reclass_sst, reclass_depth), fun = "*") # Use multi
 
 ```
 
+## Determine the most suitable EEZ
+
 ```{r}
-plot(suitable_sst_depth)
+# Create a raster of the eez data
+west_coast_eez_raster <- rasterize(west_coast_eez, 
+                                   suitable_sst_depth, 
+                                   field = "rgn") # Transfer the region variable 
+
+plot(west_coast_eez_raster)
+
 ```
+
+```{r}
+suitable_area <- cellSize(suitable_sst_depth, # Area that satisifies depth and temperature parameters
+                          mask = TRUE, # Keep NAs in output
+                          unit = "km") # Match units to eez units
+```
+
 
 
