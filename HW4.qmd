@@ -247,9 +247,25 @@ plot(west_coast_eez_raster)
 ```
 
 ```{r}
-suitable_area <- cellSize(suitable_sst_depth, # Area that satisifies depth and temperature parameters
+# Quantify area of grid cells suitable for oysters
+suitable_area <- cellSize(suitable_sst_depth, # Area that satisfies depth and temperature parameters
                           mask = TRUE, # Keep NAs in output
                           unit = "km") # Match units to eez units
+
+# Sum suitable area by eez region
+suitable_eez_area <- zonal(suitable_area, 
+      west_coast_eez_raster,
+      fun = "sum",
+      na.rm = TRUE) 
+
+# Display values in a table
+  kable(suitable_eez_area,
+        digits = 2, 
+        col.names = c("Region", "Suitable Area (km^2)"),
+        caption = "Suitable Area by Exclusive Economic Zone Region") %>% 
+  kable_styling(bootstrap_options = "striped",
+                position = "center")
+
 ```
 
 
