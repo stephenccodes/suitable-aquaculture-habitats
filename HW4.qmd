@@ -25,7 +25,7 @@ use lapp() on the classified SST and depth rasters to find locations of suitable
 Then, use mask() to find suitable cells within the EEZa
 - hint, this is a raster-vector interaction between the cells from lapp() and EEZ vector data
 
-*And to find the total suitable area within each EEX
+*And to find the total suitable area within each EEZ
 RASTERIZE*
 
 cell Size from Terra
@@ -132,26 +132,9 @@ expect_identical(st_crs(depth), st_crs(west_coast_eez),
 })
 ```
 
-
-
-
-Oysters
-
-Research has shown that oysters and dungeness crabs need the following conditions for optimal growth:
-
-- sea surface temperature: 11-30°C
-- depth: 0-70 meters below sea level
-
-Dungeness Crabs
-
-- sea surface temperature 3°C - 19°C, preferred 9°C
-  -  5.8 - 9.8, mean 7.8
-- depth: 0 - 360 meters below sea level
-
 ## Process data
 find the mean SST from 2008-2012 (e.g. create single raster of average SST)
 convert average SST from Kelvin to Celsius
-
 
 ### Make one raster that is comprised of an average of sea surafce tempertures from 2008 - 2012
 ```{r}
@@ -201,4 +184,58 @@ if(all(terra::res(depth_resample) == terra::res(mean_sst))) {
   stop("Resolution does not match")
 }
 ```
+
+## Find suitable locations
+
+Oysters
+
+Research has shown that oysters and dungeness crabs need the following conditions for optimal growth:
+
+- sea surface temperature: 11-30°C
+- depth: 0-70 meters below sea level
+
+Dungeness Crabs
+
+- sea surface temperature 3°C - 19°C, preferred 9°C
+  -  5.8 - 9.8, mean 7.8
+- depth: 0 - 360 meters below sea level
+
+
+
+
+Reclassify SST and depth data into locations that are suitable for oysters
+
+```{r}
+# Create sst reclassification matrix
+rcl_sst <- matrix(c(-Inf, 11, NA, # min temperature
+                    11, 30, 1, 
+                    30, Inf, NA), # max temperature
+                    ncol = 3, byrow = TRUE)
+
+# Use reclassification matrix to reclassify sst raster
+reclass_sst <- classify(mean_sst, rcl = rcl_sst)
+```
+
+```{r}
+# Create depth reclassification matrix
+rcl_depth <- matrix(c(-Inf, -70, NA, # min depth
+                    -70, 0, 1, 
+                    0, Inf, NA), # max depth
+                    ncol = 3, byrow = TRUE)
+
+# Use reclassification matrix to reclassify depth raster
+reclass_depth <- classify(depth_resample, rcl = rcl_depth)
+```
+
+
+```{r}
+# Find locations that satisfy both SST and depth conditions
+suitable_sst_depth <- lapp(c(reclass_sst, reclass_depth), fun = "*") # Use multiply function. Only cells that both have a 1 will remain a 1
+
+```
+
+```{r}
+plot(suitable_sst_depth)
+```
+
 
