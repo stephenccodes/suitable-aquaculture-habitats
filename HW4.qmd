@@ -7,28 +7,15 @@ execute:
   eval: true
   warning: false
   message: false
+  echo: true
 format:
   html:
     toc: true
+    code-fold: true
 editor_options: 
   chunk_output_type: console
 ---
 
-TIPS FOR HW#4
-classify your mean SST raster
-- you can use mean() on the raster directly
-
-classify your cropped and re sampled depth raster
-
-use lapp() on the classified SST and depth rasters to find locations of suitable aquaculture areas by multiplying the values of the classified raster cells
-
-Then, use mask() to find suitable cells within the EEZa
-- hint, this is a raster-vector interaction between the cells from lapp() and EEZ vector data
-
-*And to find the total suitable area within each EEZ
-RASTERIZE*
-
-cell Size from Terra
 
 ## Setup
 ```{r}
@@ -234,7 +221,7 @@ suitable_sst_depth <- lapp(c(reclass_sst, reclass_depth), fun = "*") # Use multi
 
 ```
 
-## Determine the most suitable EEZ
+## Determine the most suitable EEZ by area
 
 ```{r}
 # Create a raster of the eez data
@@ -259,14 +246,71 @@ suitable_eez_area <- zonal(suitable_area,
       na.rm = TRUE) 
 
 # Display values in a table
-  kable(suitable_eez_area,
-        digits = 2, 
-        col.names = c("Region", "Suitable Area (km^2)"),
+kable(suitable_eez_area, digits = 2, 
+        col.names = c("Region","Suitable Area (km^2)"), # Use html to render the exponent as superscript
         caption = "Suitable Area by Exclusive Economic Zone Region") %>% 
-  kable_styling(bootstrap_options = "striped",
+kable_styling(bootstrap_options = "striped",
                 position = "center")
 
 ```
 
+## Visualize the results
+
+```{r}
+# Combine the eez suitable area data with our original eez dataframe
+eez_join <- left_join(west_coast_eez, suitable_eez_area, by = "rgn")
+
+# Create a color palette with colorbrewer for bathymetrry data
+my_palette2 <- rev(c('#693829FF', '#894B33FF', '#A56A3EFF', '#CFB267FF', '#D9C5B6FF', '#9CA9BAFF', '#5480B5FF', '#3D619DFF', '#405A95FF', '#345084FF'))
 
 
+oyster_eez_area_map <- tm_shape(depth_crop) +
+  tm_raster(palette = my_palette2,
+            title = "Bathymetry\n(Meters above or\n below sea level)",
+            alpha = 1,
+            midpoint = 0,
+            legend.show = TRUE) +
+tm_shape(eez_join, 
+         raster.downsample = TRUE) + # Re-sample to lower resolution
+  tm_polygons(col = "area",
+              palette = "Greens",
+              alpha = 0.75,
+              title = expression("Suitable habitat area (km"^2*")")) + # Write units as an expression
+tm_text("rgn",
+        xmod = -0.2,
+        size = 0.6,) + # Label each region
+tm_compass(size = 1.5,
+           position = c("left", "bottom")) +
+tm_scale_bar(position = c("left", "bottom")) +
+tm_layout(legend.outside = TRUE,
+          frame = TRUE,
+          main.title = "Suitable Oyster Habitat in\nWest Coast Exclusive Economic Zones",
+          main.title.size = 1.35,
+          main.title.position = c("center", "top"),
+          inner.margins = c(0, 0, 0, 0)) # Fit map to extent of frame
+
+# Save the map to a larger image
+tmap_save(oyster_eez_area_map, filename = "HW4_files/oyster_eez_area_map.png", width = 2400, height = 1800)
+```
+<center>
+![Suitable Oyster Habitat Map](HW4_files/oyster_eez_area_map.png)
+<center>
+
+
+
+```{r}
+# Create a table for my citations
+citations_df = tibble::tribble(
+  ~Data,
+  ~Citation,
+  ~Accesssed,
+  ~Link,
+ "Sea Surface Temperature Data", "NOAA Coral Reef Watch. 2019, updated daily. NOAA Coral Reef Watch Version 3.1 Daily 5km Satellite Regional Virtual Station Time Series Data. College Park, Maryland, USA: NOAA Coral Reef Watch.", "11/29/24", "[NOAA Coral Reef Watch](https://coralreefwatch.noaa.gov/product/5km/index_5km_ssta.php)",
+  "Bathymetry Data", "GEBCO Compilation Group (2022) GEBCO_2022 Grid (doi:10.5285/e0f0bb80-ab44-2739-e053-6c86abc0289c)", "11/29/24", "[GEBCO](https://www.gebco.net/data_and_products/gridded_bathymetry_data/#area)",
+  "Exclusive Economic Zones", "Flanders Marine Institute (2024): MarineRegions.org.", "11/29/24", "[Marine Regions](https://www.marineregions.org/eez.php)",
+  "Sea Life Base Aquaculture Data", "Palomares, M.L.D. and D. Pauly. Editors. 2024. SeaLifeBase. World Wide Web electronic publication. www.sealifebase.org, version (08/2024).", "11/29/24", "[Sea Life Base](https://www.sealifebase.ca/search.php)"
+)
+
+knitr::kable(citations_df, 
+             caption = "Data Citations")
+```
