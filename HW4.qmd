@@ -39,25 +39,6 @@ library(testthat)
 west_coast_eez <- read_sf(here("data", "wc_regions_clean.shp"))
 
 depth <- terra::rast(here("data", "depth.tif"))
-
-
-```
-
-
-```{r}
-# sst2008 <- terra::rast(here("data", "average_annual_sst_2008.tif"))
-# sst2009 <- terra::rast(here("data", "average_annual_sst_2009.tif"))
-# sst2010 <- terra::rast(here("data", "average_annual_sst_2010.tif"))
-# sst2011 <- terra::rast(here("data", "average_annual_sst_2011.tif"))
-# sst2012 <- terra::rast(here("data", "average_annual_sst_2012.tif"))
-# 
-# 
-
-#plot(sst)
-```
-
-```{r}
-plot(depth)
 ```
 
 
@@ -77,11 +58,6 @@ names(sst_stack) <- c("sst2008", "sst2009", "sst2010", "sst2011", "sst2012")
 # Preliminary plot
 plot(sst_stack)
 
-# # update layer names to match band
-# names(sst_raster) <- c("blue", "green", "red", "NIR", "SWIR1", "SWIR2")
-# 
-# # plot true color image
-# plotRGB(sst_raster, r = 3, g = 2, b = 1, stretch = "lin")
 ```
 
 ## CRS check
@@ -133,8 +109,6 @@ mean_sst <- app(sst_stack, fun = mean)
 
 # Convert units from Kelvin to Celsius
 mean_sst <- mean_sst - 273.15
-
-plot(mean_sst)
 ```
 
 
@@ -145,13 +119,9 @@ depth_crop <- crop(depth, mean_sst)
 
 # Re-sample depth to match the resolution of sst
 depth_resample <- resample(depth_crop, y = mean_sst, method = "near")
-
-
-plot(depth_resample)
 ```
 
-check that the depth and SST match in resolution, extent, and coordinate reference system
-hint: can the rasters be stacked?
+## Check that the depth and SST rasters match in resolution, extent, and coordinate reference system
 ```{r}
 # Stack the two rasters to confirm they are compatible
 depth_sst_stack <- c(depth_resample, mean_sst)
@@ -229,8 +199,6 @@ west_coast_eez_raster <- rasterize(west_coast_eez,
                                    suitable_sst_depth, 
                                    field = "rgn") # Transfer the region variable 
 
-plot(west_coast_eez_raster)
-
 ```
 
 ```{r}
@@ -247,7 +215,7 @@ suitable_eez_area <- zonal(suitable_area,
 
 # Display values in a table
 kable(suitable_eez_area, digits = 2, 
-        col.names = c("Region","Suitable Area (km^2)"), # Use html to render the exponent as superscript
+        col.names = c("Region","Suitable Area km^2"), # Use LaTex to render the exponent as superscript
         caption = "Suitable Area by Exclusive Economic Zone Region") %>% 
 kable_styling(bootstrap_options = "striped",
                 position = "center")
@@ -268,7 +236,8 @@ oyster_eez_area_map <- tm_shape(depth_crop) +
   tm_raster(palette = my_palette2,
             title = "Bathymetry\n(Meters above or\n below sea level)",
             alpha = 1,
-            midpoint = 0,
+            stretch.palette = FALSE,
+            midpoint = 0, #### SHOULD THIS BE NA??? ####
             legend.show = TRUE) +
 tm_shape(eez_join, 
          raster.downsample = TRUE) + # Re-sample to lower resolution
@@ -294,7 +263,13 @@ tmap_save(oyster_eez_area_map, filename = "HW4_files/oyster_eez_area_map.png", w
 ```
 <center>
 ![Suitable Oyster Habitat Map](HW4_files/oyster_eez_area_map.png)
-<center>
+
+## Generalize my workflow
+
+
+
+
+
 
 
 
