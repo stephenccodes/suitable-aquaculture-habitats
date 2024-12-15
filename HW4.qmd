@@ -352,7 +352,7 @@ aquaculture_fun <- function(species, min_sst, max_sst, min_depth, max_depth){
     tm_scale_bar(position = c("left", "bottom")) +
     tm_layout(legend.outside = TRUE,
               frame = TRUE,
-              main.title = "Suitable Oyster Habitat in\nWest Coast Exclusive Economic Zones",
+              main.title = paste("Suitable", species, "Habitat in\nWest Coast Exclusive Economic Zones"),
               main.title.size = 1.35,
               main.title.position = c("center", "top"),
               inner.margins = c(0, 0, 0, 0)) # Fit map to extent of frame
@@ -362,17 +362,25 @@ aquaculture_fun <- function(species, min_sst, max_sst, min_depth, max_depth){
 ```
 
 
-Dungeness Crabs
+Dungeness Crab
+- Sea surface temperature
+- 3°C - 19°C, preferred 9°C
+- 5.8 - 9.8, mean 7.8
+- Depth: 0 - 360 meters below sea level
 
-- sea surface temperature 3°C - 19°C, preferred 9°C
--  5.8 - 9.8, mean 7.8
-- depth: 0 - 360 meters below sea level
 ```{r}
-aquaculture_fun("Dungeness Crab", 3, 19, 5.8, 9.8)
+aquaculture_fun("Dungeness Crab", 5.8, 9.8, 0, 360)
 ```
 
+Razor Clam
+- Sea surface temperature 
+- 5.6 - 12.6, mean 8.9
+- Depth: 0 - 55 meters below sea level
 
 
+```{r}
+aquaculture_fun("Razor Clam", 5.6, 12.6, 0, 55)
+```
 
 
 ```{r}
