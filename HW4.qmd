@@ -2,7 +2,7 @@
 title: "EDS 223: Homework 4"
 subtitle: "TBD"
 author: Stephen Carroll
-date: last-modified
+date: 12-14-24
 execute: 
   eval: true
   warning: false
@@ -16,6 +16,12 @@ editor_options:
   chunk_output_type: console
 ---
 
+# Prioritizing potential aquaculture
+
+
+## Background: 
+
+The West Coast of the United States has five Exclusive Economic Zones (EEZ). An EEZ is a maritime zone that extends up to 200 nautical miles (about 370 kilometers) from a country's coastline. These zones can be analyzed to determine suitable locations for marine aquaculture. By using geospatial data on sea surface temperature (SST) and bathymetry (depth), we can identify areas within these zones that meet the environmental requirements for aquaculture of individual species. This project aims to develop a map of the suitable habitat areas for Oysters. We will also build a function that will be capable of assessing potential sites for any species based on preferred SST and depth, and creating a map for them, contributing to the sustainable growth of marine aquaculture.
 
 ## Setup
 ```{r}
@@ -33,7 +39,8 @@ library(patchwork)
 library(testthat)
 ```
 
-## Load Data
+## Load data
+
 ```{r}
 # Read in data 
 west_coast_eez <- read_sf(here("data", "wc_regions_clean.shp"))
@@ -43,6 +50,7 @@ depth <- terra::rast(here("data", "depth.tif"))
 
 
 ## Prepare data
+
 ```{r}
 # Compile all our SST rasters into one object
 sst_files <- list.files(here("data"), 
@@ -80,6 +88,7 @@ if(st_crs(west_coast_eez) == crs(depth)) { # Vector data vs raster data
 }
 ```
 
+# Test the CRS conversion
 ```{r}
 # Confirm that any conversions were successful with a test
 test_that("CRS of all objects are the same", {
@@ -96,14 +105,10 @@ expect_identical(st_crs(depth), st_crs(west_coast_eez),
 ```
 
 ## Process data
-find the mean SST from 2008-2012 (e.g. create single raster of average SST)
-convert average SST from Kelvin to Celsius
 
-### Make one raster that is comprised of an average of sea surafce tempertures from 2008 - 2012
+### Make one raster that is comprised of an average of SST from 2008-2012 and convert from Kelvin to Celsius
+
 ```{r}
-# depth <- project(depth, crs("EPSG:4326"))
-# sst <- project(sst, crs("EPSG:4326"))
-
 # Find average temperature from 2008-2012
 mean_sst <- app(sst_stack, fun = mean)
 
@@ -113,6 +118,7 @@ mean_sst <- mean_sst - 273.15
 
 
 ### Remove bathymetry data that does not lie in the same extent as the temperature data
+
 ```{r}
 # Crop depth to match the geographic extent of sst
 depth_crop <- crop(depth, mean_sst)
@@ -121,7 +127,8 @@ depth_crop <- crop(depth, mean_sst)
 depth_resample <- resample(depth_crop, y = mean_sst, method = "near")
 ```
 
-## Check that the depth and SST rasters match in resolution, extent, and coordinate reference system
+### Check that the depth and SST rasters match in resolution, extent, and coordinate reference system
+
 ```{r}
 # Stack the two rasters to confirm they are compatible
 depth_sst_stack <- c(depth_resample, mean_sst)
@@ -144,14 +151,15 @@ if(all(terra::res(depth_resample) == terra::res(mean_sst))) {
 
 ## Find suitable locations
 
-Oysters
 
-Research has shown that oysters and dungeness crabs need the following conditions for optimal growth:
+#### Oysters
 
-- sea surface temperature: 11-30°C
-- depth: 0-70 meters below sea level
+Research has shown that oysters need the following conditions for optimal growth:
 
-Reclassify SST and depth data into locations that are suitable for oysters
+- Sea surface temperature: 11-30°C
+- Depth: 0-70 meters below sea level
+
+### Reclassify SST and depth data into locations that are suitable for oysters
 
 ```{r}
 # Create sst reclassification matrix
@@ -162,9 +170,7 @@ rcl_sst <- matrix(c(-Inf, 11, NA, # min temperature
 
 # Use reclassification matrix to reclassify sst raster
 reclass_sst <- classify(mean_sst, rcl = rcl_sst)
-```
 
-```{r}
 # Create depth reclassification matrix
 rcl_depth <- matrix(c(-Inf, -70, NA, # min depth
                     -70, 0, 1, 
@@ -175,14 +181,15 @@ rcl_depth <- matrix(c(-Inf, -70, NA, # min depth
 reclass_depth <- classify(depth_resample, rcl = rcl_depth)
 ```
 
+### Find locations that satisfy both SST and depth conditions for oysters
 
 ```{r}
-# Find locations that satisfy both SST and depth conditions
+# Multiply reclassified matrices to find cells that each have a 1
 suitable_sst_depth <- lapp(c(reclass_sst, reclass_depth), fun = "*") # Use multiply function. Only cells that both have a 1 will remain a 1
 
 ```
 
-## Determine the most suitable EEZ by area
+## Determine the most suitable EEZ for oysters by area
 
 ```{r}
 # Create a raster of the eez data
@@ -191,6 +198,8 @@ west_coast_eez_raster <- rasterize(west_coast_eez,
                                    field = "rgn") # Transfer the region variable 
 
 ```
+
+### Find the area of grid cells & the total suitable area within each EEZ 
 
 ```{r}
 # Quantify area of grid cells suitable for oysters
@@ -223,39 +232,35 @@ eez_join <- left_join(west_coast_eez, suitable_eez_area, by = "rgn")
 my_palette2 <- rev(c('#693829FF', '#894B33FF', '#A56A3EFF', '#CFB267FF', '#D9C5B6FF', '#9CA9BAFF', '#5480B5FF', '#3D619DFF', '#405A95FF', '#345084FF'))
 
 
-oyster_eez_area_map <- tm_shape(depth_crop) +
+tm_shape(depth_crop) +
   tm_raster(palette = my_palette2,
             title = "Bathymetry\n(Meters above or\n below sea level)",
             alpha = 1,
             stretch.palette = FALSE,
             midpoint = 0, #### SHOULD THIS BE NA??? ####
             legend.show = TRUE) +
-tm_shape(eez_join, 
-         raster.downsample = TRUE) + # Re-sample to lower resolution
+  tm_shape(eez_join, 
+           raster.downsample = TRUE) + # Re-sample to lower resolution
   tm_polygons(col = "area",
               palette = "Greens",
               alpha = 0.75,
               title = expression("Suitable habitat area (km"^2*")")) + # Write units as an expression
-tm_text("rgn",
-        xmod = -0.2,
-        size = 0.6,) + # Label each region
-tm_compass(size = 1.5,
-           position = c("left", "bottom")) +
-tm_scale_bar(position = c("left", "bottom")) +
-tm_layout(legend.outside = TRUE,
-          frame = TRUE,
-          main.title = "Suitable Oyster Habitat in\nWest Coast Exclusive Economic Zones",
-          main.title.size = 1.35,
-          main.title.position = c("center", "top"),
-          inner.margins = c(0, 0, 0, 0)) # Fit map to extent of frame
-
-# Save the map to a larger image
-tmap_save(oyster_eez_area_map, filename = "HW4_files/oyster_eez_area_map.png", width = 2400, height = 1800)
+  tm_text("rgn",
+          xmod = -0.2,
+          size = 0.6,) + # Label each region
+  tm_compass(size = 1.5,
+             position = c("left", "bottom")) +
+  tm_scale_bar(position = c("left", "bottom")) +
+  tm_layout(legend.outside = TRUE,
+            frame = TRUE,
+            main.title = "Suitable Oyster Habitat in\nWest Coast Exclusive Economic Zones",
+            main.title.size = 1.35,
+            main.title.position = c("center", "top"),
+            inner.margins = c(0, 0, 0, 0)) # Fit map to extent of frame
 ```
-<center>
-![Suitable Oyster Habitat Map](HW4_files/oyster_eez_area_map.png)
 
-## Generalize my workflow
+
+## Generalize the workflow with a function
 
 ```{r}
 aquaculture_fun <- function(species, min_sst, max_sst, min_depth, max_depth){
@@ -352,7 +357,7 @@ aquaculture_fun <- function(species, min_sst, max_sst, min_depth, max_depth){
     tm_scale_bar(position = c("left", "bottom")) +
     tm_layout(legend.outside = TRUE,
               frame = TRUE,
-              main.title = paste("Suitable", species, "Habitat in\nWest Coast Exclusive Economic Zones"),
+              main.title = paste("Suitable", species, "Habitat in\nWest Coast Exclusive Economic Zones"), # Print species name in title
               main.title.size = 1.35,
               main.title.position = c("center", "top"),
               inner.margins = c(0, 0, 0, 0)) # Fit map to extent of frame
@@ -361,20 +366,27 @@ aquaculture_fun <- function(species, min_sst, max_sst, min_depth, max_depth){
 
 ```
 
+### Apply the function to new species
 
-Dungeness Crab
-- Sea surface temperature
-- 3°C - 19°C, preferred 9°C
-- 5.8 - 9.8, mean 7.8
+The parameters for the function are species, minimum and maximum sea surface temperatures, and minimum and maximum depths for the species. The resulting output will be a map indicating the total suitable area for that species within each EEZ.
+
+
+#### Dungeness Crab
+
+Research has shown that dungeness crabs need the following conditions for optimal growth:
+
+- Sea surface temperature: 3°C - 19°C, preferred 9°C
 - Depth: 0 - 360 meters below sea level
 
 ```{r}
-aquaculture_fun("Dungeness Crab", 5.8, 9.8, 0, 360)
+aquaculture_fun("Dungeness Crab", 3, 19, 0, 360)
 ```
 
-Razor Clam
-- Sea surface temperature 
-- 5.6 - 12.6, mean 8.9
+#### Razor Clam
+
+Research has shown that razor clams need the following conditions for optimal growth:
+
+- Sea surface temperature: 5.6°C - 12.6°C, mean 8.9°C
 - Depth: 0 - 55 meters below sea level
 
 
@@ -382,6 +394,11 @@ Razor Clam
 aquaculture_fun("Razor Clam", 5.6, 12.6, 0, 55)
 ```
 
+## Reflection
+
+Our function produces a clear representation of the 5 exclusive economic zones on the West Coast of the United States colored by the total suitable habitat area (km$^2$) for the species provided. Central California has by far the most suitable habitat for oysters, followed by Southern California, and Washington. Dungeness crabs are best suited for the Washington, Southern California, adn Northern California EEZs, respectively. Washington and Northern California appear to be the only EEZs with significant habitable area for razor clams.
+
+By creating a function, we were able to easily use all of the steps followed investigating oyster habitat, and use them to generalize a workflow for all species.  This function can now be used to assist scientists and policymakers to understand where they should be directing their aquaculture development efforts on the West Coast.
 
 ```{r}
 # Create a table for my citations
