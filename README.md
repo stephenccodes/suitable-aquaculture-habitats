@@ -63,19 +63,36 @@ Bathymetry of the Ocean [General Bathymetric Chart of the Oceans (GEBCO).](https
 
 ## Repository organization
 
+```
 ├── aquaculture-suitability_files/
-├── data/
-│     ├── average_annual_sst_2008.tif      # Yearly sst data
-│     ├── average_annual_sst_2009.tif
-│     ├── average_annual_sst_2010.tif
-│     ├── average_annual_sst_2011.tif
-│     ├── average_annual_sst_2012.tif
-│     ├── depth.tif                        # Bathymetry data
-│     └── wc_regions_clean.shp             # Economic zone data
-├── scripts/
-│     └── aqua_fun.R                       # Aquaculture suitability function
-├── .gitignore
-├── README.md                         
-├── aquaculture-suitability.Rproj
-├── aquaculture-suitability.html
-└── aquaculture-suitability.qmd            # Complete analysis quarto document
+├─ data/
+│    ├── average_annual_sst_2008.tif     # Yearly sst data
+│    ├── average_annual_sst_2009.tif
+│    ├── average_annual_sst_2010.tif
+│    ├── average_annual_sst_2011.tif│
+│    ├── average_annual_sst_2012.tif
+│    ├── depth.tif                       # Bathymetry data
+│    ├── wc_regions_clean.dbf
+│    ├── wc_regions_clean.prj
+│    ├── wc_regions_clean.shp            # Economic zone data
+│    └── wc_regions_clean.shx             
+│  
+├──   .gitignore
+├──   README.md                         
+├──   aquaculture_habitats.Rproj
+├──   aquaculture_habitats.html
+├──   aquaculture_habitats.qmd         # Complete analysis quarto document
+  
+  
+```
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+ 
